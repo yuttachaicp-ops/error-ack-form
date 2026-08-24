@@ -289,30 +289,30 @@
     <div class="imgs">
       <div class="ib">
         <div class="cp"><i>1</i>รูปที่ลูกค้าแจ้งมา</div>
-        <label class="drop" tabindex="0" data-k="img1">
+        <div class="drop" tabindex="0" role="button" aria-label="ใส่รูปที่ลูกค้าแจ้งมา" data-k="img1">
           <span class="tools"><button type="button" class="rot">หมุน</button><button type="button" class="del">ลบ</button></span>
           <span class="ph"><b>+</b>กดเพื่อเลือกรูป<br>หรือลากรูปมาวาง</span>
           <img alt="รูปที่ลูกค้าแจ้งมา">
           <input type="file" accept="image/*">
-        </label>
+        </div>
       </div>
       <div class="ib">
         <div class="cp"><i>2</i>ภาพจากวิดีโอแพ็คสินค้า</div>
-        <label class="drop" tabindex="0" data-k="img2">
+        <div class="drop" tabindex="0" role="button" aria-label="ใส่ภาพจากวิดีโอแพ็คสินค้า" data-k="img2">
           <span class="tools"><button type="button" class="rot">หมุน</button><button type="button" class="del">ลบ</button></span>
           <span class="ph"><b>+</b>กดเพื่อเลือกรูป<br>หรือลากรูปมาวาง</span>
           <img alt="ภาพจากวิดีโอแพ็คสินค้า">
           <input type="file" accept="image/*">
-        </label>
+        </div>
       </div>
       <div class="ib">
         <div class="cp"><i>3</i>รูปคำสั่งซื้อ</div>
-        <label class="drop" tabindex="0" data-k="img3">
+        <div class="drop" tabindex="0" role="button" aria-label="ใส่รูปคำสั่งซื้อ" data-k="img3">
           <span class="tools"><button type="button" class="rot">หมุน</button><button type="button" class="del">ลบ</button></span>
           <span class="ph"><b>+</b>กดเพื่อเลือกรูป<br>หรือลากรูปมาวาง</span>
           <img alt="รูปคำสั่งซื้อ">
           <input type="file" accept="image/*">
-        </label>
+        </div>
       </div>
     </div>
   </div>
@@ -452,7 +452,11 @@
 
   drops.forEach(function(drop){
     var input = drop.querySelector('input[type=file]');
-    drop.addEventListener('click', function(){ activeDrop = drop; });
+    drop.addEventListener('click', function(e){
+      activeDrop = drop;
+      if (e.target.closest('.tools')) return;
+      input.click();
+    });
     drop.addEventListener('focus', function(){ activeDrop = drop; });
     drop.addEventListener('keydown', function(e){
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); }
