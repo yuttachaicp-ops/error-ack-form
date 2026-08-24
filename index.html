@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ใบรับทราบความผิดพลาด</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --ink:#161b22;
+    --text:#2a323d;
+    --muted:#7b8593;
+    --faint:#a7b0bc;
+    --line:#d6dce4;
+    --hair:#e7ebf0;
+    --tint:#f6f8fa;
+    --paper:#ffffff;
+    --accent:#0f6b6a;
+    --accent-soft:#e3f0ef;
+    --warn:#a8560d;
+    --canvas:#eceff3;
+    --frameH:74mm;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --canvas:#191d23; } }
+  :root[data-theme="dark"]{ --canvas:#191d23; }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{
+    background:var(--canvas);
+    font-family:"Sarabun","Garuda","Tahoma",sans-serif;
+    font-size:10pt; line-height:1.32; color:var(--text);
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+
+  /* ===== toolbar ===== */
+  .bar{
+    position:sticky; top:0; z-index:20; background:var(--paper);
+    border-bottom:1px solid var(--line); padding:3mm 4mm;
+    display:flex; align-items:center; gap:3mm; flex-wrap:wrap;
+  }
+  .bar .nm{ font-weight:700; color:var(--ink); font-size:11pt; margin-right:auto; }
+  .bar .tip{ font-size:8.5pt; color:var(--muted); flex-basis:100%; line-height:1.5; }
+  .bar .st{ font-size:8.5pt; color:var(--accent); min-width:26mm; }
+  .bar .warn{ flex-basis:100%; font-size:9pt; color:var(--warn); font-weight:600; display:none; }
+  .bar .warn.on{ display:block; }
+  .btn{
+    font:inherit; font-weight:600; font-size:9.5pt; cursor:pointer;
+    border:1px solid var(--line); background:var(--paper); color:var(--text);
+    border-radius:2mm; padding:1.8mm 4mm;
+  }
+  .btn:hover{ border-color:var(--accent); color:var(--accent); }
+  .btn.pri{ background:var(--ink); border-color:var(--ink); color:#fff; }
+  .btn.pri:hover{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn:focus-visible, input:focus-visible, textarea:focus-visible, .drop:focus-visible, canvas:focus-visible{
+    outline:2px solid var(--accent); outline-offset:1px;
+  }
+
+  /* ===== paper ===== */
+  .sheet{
+    width:210mm; margin:6mm auto; background:var(--paper);
+    padding:9mm 10mm 7mm; box-shadow:0 2mm 8mm rgba(20,26,34,.16);
+  }
+
+  /* ===== header ===== */
+  .hd{ display:flex; align-items:center; gap:6mm; }
+  .hd h1{ flex:1; font-size:15.5pt; font-weight:700; color:var(--ink); margin:0; letter-spacing:-.01em; }
+  .meta{ flex:0 0 78mm; display:flex; gap:2mm; }
+  .meta .m{ flex:1; }
+  .meta .lb{ font-size:6.5pt; letter-spacing:.09em; color:var(--muted); margin-bottom:.6mm; }
+  .rule{ height:1mm; background:var(--ink); border-radius:1mm; margin:2mm 0 0; }
+
+  /* ===== sections ===== */
+  .sec{ margin-top:2mm; }
+  .sh{ display:flex; align-items:center; gap:2mm; margin-bottom:1.2mm; }
+  .sh .no{
+    flex:0 0 4.6mm; height:4.6mm; border-radius:50%; background:var(--ink); color:#fff;
+    font-size:7.5pt; font-weight:600; display:flex; align-items:center; justify-content:center;
+  }
+  .sh .tx{ font-weight:700; font-size:10pt; color:var(--ink); }
+  .sh .hint{ font-weight:400; font-size:8pt; color:var(--muted); }
+  .sh .ln{ flex:1; height:1px; background:var(--hair); }
+
+  .card{ border:1px solid var(--line); border-radius:2mm; padding:2mm 3mm; }
+  .card.tint{ background:var(--tint); }
+
+  /* ===== inputs ===== */
+  .grid{ display:flex; gap:4mm; }
+  .fld{ flex:1; min-width:0; }
+  .fld .lb{ font-size:7pt; letter-spacing:.07em; color:var(--muted); margin-bottom:.2mm; }
+  input[type="text"]{
+    font:inherit; color:var(--ink); width:100%; height:6mm; padding:0 .8mm;
+    border:none; border-bottom:1px solid var(--line); background:transparent;
+    font-variant-numeric:tabular-nums;
+  }
+  input[type="text"].boxed{
+    border:1px solid var(--line); border-radius:1.2mm; background:var(--tint);
+    height:5.8mm; padding:0 1.4mm; font-size:8.5pt;
+  }
+  textarea{
+    font:inherit; color:var(--ink); width:100%; display:block; resize:none; overflow:hidden;
+    border:none; background:transparent; padding:0; line-height:1.55;
+  }
+
+  /* ===== checkbox chips ===== */
+  .chips{ display:flex; flex-wrap:wrap; gap:1.8mm; }
+  .chip{
+    display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:1.4mm;
+    padding:.7mm 2.2mm; font-size:9pt; white-space:nowrap; cursor:pointer;
+  }
+  .chip:hover{ border-color:var(--accent); }
+  .chip.grow{ flex:1; min-width:34mm; }
+  input[type="checkbox"]{
+    appearance:none; -webkit-appearance:none; margin:0 1.4mm 0 0; flex:0 0 auto;
+    width:3.2mm; height:3.2mm; border:1.2px solid var(--faint); border-radius:.7mm;
+    background:var(--paper); cursor:pointer; position:relative;
+  }
+  input[type="checkbox"]:checked{ background:var(--ink); border-color:var(--ink); }
+  input[type="checkbox"]:checked::after{
+    content:"✓"; position:absolute; inset:0; color:#fff; font-size:2.6mm;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .chip .wf{ flex:1; margin-left:1.5mm; min-width:0; }
+  .chip .wf input{ height:4.2mm; border-bottom-color:var(--hair); font-size:9pt; }
+
+  .mini-lb{ font-size:7.5pt; letter-spacing:.05em; color:var(--muted); font-weight:600; margin-bottom:.5mm; }
+
+  /* ===== image drop zones ===== */
+  .imgs{ display:flex; gap:3mm; }
+  .ib{ flex:1; min-width:0; }
+  .ib .cp{ font-size:8.5pt; font-weight:600; color:var(--ink); margin-bottom:1.2mm; display:flex; align-items:center; gap:1.5mm; }
+  .ib .cp i{
+    font-style:normal; font-size:7pt; color:#fff; background:var(--faint); border-radius:50%;
+    width:4mm; height:4mm; display:flex; align-items:center; justify-content:center; flex:0 0 4mm;
+  }
+  .drop{
+    position:relative; display:block; height:var(--frameH); border:1.2px dashed var(--line);
+    border-radius:2mm; background:var(--tint); cursor:pointer; overflow:hidden;
+  }
+  .drop:hover, .drop.over{ border-color:var(--accent); background:var(--accent-soft); }
+  .drop .ph{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:1mm; color:var(--faint); font-size:8pt; text-align:center; padding:2mm;
+  }
+  .drop .ph b{ font-size:14pt; font-weight:400; line-height:1; }
+  .drop img{ width:100%; height:100%; object-fit:contain; display:none; }
+  .drop.has img{ display:block; }
+  .drop.has{ border-style:solid; border-color:var(--line); background:var(--paper); }
+  .drop.has .ph{ display:none; }
+  .drop input[type="file"]{ position:absolute; width:0; height:0; opacity:0; }
+  .tools{ position:absolute; top:1.5mm; right:1.5mm; z-index:2; display:none; gap:1mm; }
+  .drop.has .tools{ display:flex; }
+  .tools button{
+    border:1px solid var(--line); background:var(--paper); color:var(--text);
+    border-radius:1.2mm; font:inherit; font-size:8pt; padding:.4mm 1.8mm; cursor:pointer;
+  }
+  .tools button:hover{ color:var(--accent); border-color:var(--accent); }
+  .tools button.del:hover{ color:#b02a2a; border-color:#b02a2a; }
+
+  /* ===== signatures ===== */
+  .ack{ display:flex; gap:2.5mm; align-items:flex-start; font-size:8pt; color:var(--muted); line-height:1.4; }
+  .ack .bar2{ flex:0 0 .9mm; align-self:stretch; background:var(--ink); border-radius:1mm; }
+  .sg{ display:flex; gap:3mm; margin-top:2mm; }
+  .sc{ flex:1; min-width:0; }
+  .sc .rl{ font-size:8.5pt; font-weight:700; color:var(--ink); text-align:center; white-space:nowrap; margin-bottom:1.2mm; }
+  .pad{
+    position:relative; height:15mm; border:1px solid var(--line); border-radius:1.6mm;
+    background:var(--tint); overflow:hidden;
+  }
+  .pad canvas{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; cursor:crosshair; }
+  .pad .hintx{
+    position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center;
+    padding-bottom:1mm; font-size:6.5pt; color:var(--faint); pointer-events:none;
+  }
+  .pad.inked .hintx{ display:none; }
+  .pad .clr{
+    position:absolute; top:1mm; right:1mm; z-index:3; display:none;
+    border:1px solid var(--line); background:var(--paper); color:var(--text);
+    border-radius:1.2mm; font:inherit; font-size:7.5pt; padding:.2mm 1.4mm; cursor:pointer;
+  }
+  .pad.inked .clr{ display:block; }
+  .sc .rw{ display:flex; align-items:baseline; font-size:7.5pt; color:var(--muted); margin-top:1.2mm; gap:1.2mm; }
+  .sc .rw .k{ white-space:nowrap; }
+  .sc .rw input{ height:4.8mm; font-size:9pt; }
+
+  /* ===== responsive (screen only) ===== */
+  @media screen and (max-width:860px){
+    .sheet{ width:100%; margin:0; padding:5mm 4mm; box-shadow:none; }
+    .hd{ flex-direction:column; align-items:stretch; gap:3mm; }
+    .meta{ flex:1 1 auto; }
+    .grid{ flex-direction:column; gap:2mm; }
+    .imgs{ flex-direction:column; }
+    .drop{ height:70mm; }
+    .sg{ flex-wrap:wrap; }
+    .sc{ flex:1 1 44%; }
+  }
+
+  /* ===== print ===== */
+  @media print{
+    @page{ size:A4; margin:9mm 10mm 7mm; }
+    body{ background:#fff; }
+    .bar{ display:none !important; }
+    .sheet{ width:auto; margin:0; padding:0; box-shadow:none; }
+    .btn, .tools, .pad .clr{ display:none !important; }
+    .drop{ cursor:default; height:var(--frameH); }
+    .imgs{ flex-direction:row; }
+    .grid{ flex-direction:row; }
+    .hd{ flex-direction:row; align-items:center; }
+    .pad .hintx{ display:none; }
+    input, textarea{ outline:none !important; }
+    .sec, .imgs, .sg, .card, .sc, .ib{ break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="nm">ใบรับทราบความผิดพลาดในการทำงาน</div>
+  <div class="st" id="status"></div>
+  <button class="btn" id="clear" type="button">ล้างฟอร์ม</button>
+  <button class="btn pri" id="print" type="button">พิมพ์ / บันทึกเป็น PDF</button>
+  <div class="tip">
+    กรอกได้ทุกช่อง • ใส่รูปโดยกดที่กรอบ ลากไฟล์มาวาง หรือกด Ctrl+V วางสกรีนช็อต • เซ็นชื่อได้เลยด้วยเมาส์หรือนิ้วในกรอบลายเซ็น •
+    ระบบเก็บร่างไว้ในเครื่องอัตโนมัติ • เวลาสั่งพิมพ์ให้เลือก A4 และปิด “Headers and footers” (ถ้าปุ่มพิมพ์ไม่ทำงาน ให้กด Ctrl+P)
+  </div>
+  <div class="warn" id="warn">⚠ เนื้อหายาวเกิน 1 หน้า A4 — ลดข้อความลงเล็กน้อยเพื่อให้พิมพ์ได้หน้าเดียว</div>
+</div>
+
+<div class="sheet">
+<div id="doc">
+
+  <div class="hd">
+    <h1>ใบรับทราบความผิดพลาดในการทำงาน</h1>
+    <div class="meta">
+      <div class="m"><div class="lb">เลขที่เอกสาร</div><input type="text" class="boxed" data-k="docno"></div>
+      <div class="m"><div class="lb">วันที่บันทึก</div><input type="text" class="boxed" data-k="docdate"></div>
+      <div class="m"><div class="lb">ผู้บันทึก</div><input type="text" class="boxed" data-k="recorder"></div>
+    </div>
+  </div>
+  <div class="rule"></div>
+
+  <!-- 1 -->
+  <div class="sec">
+    <div class="sh"><div class="no">1</div><div class="tx">ข้อมูลคำสั่งซื้อ</div><div class="ln"></div></div>
+    <div class="card">
+      <div class="chips" style="margin-bottom:2.2mm;">
+        <label class="chip"><input type="checkbox" data-k="p_shopee">Shopee</label>
+        <label class="chip"><input type="checkbox" data-k="p_lazada">Lazada</label>
+        <label class="chip"><input type="checkbox" data-k="p_line">Line</label>
+        <label class="chip grow"><input type="checkbox" data-k="p_other">อื่น ๆ<span class="wf"><input type="text" data-k="p_other_t"></span></label>
+      </div>
+      <div class="grid">
+        <div class="fld" style="flex:1.4;"><div class="lb">หมายเลขคำสั่งซื้อ</div><input type="text" data-k="orderno"></div>
+        <div class="fld"><div class="lb">ชื่อลูกค้า</div><input type="text" data-k="customer"></div>
+        <div class="fld" style="flex:.8;"><div class="lb">วันที่เกิดเหตุ</div><input type="text" data-k="incdate"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="sec">
+    <div class="sh"><div class="no">2</div><div class="tx">ประเภทความผิดพลาด <span class="hint">เลือกได้มากกว่า 1 ข้อ</span></div><div class="ln"></div></div>
+    <div class="chips">
+      <label class="chip"><input type="checkbox" data-k="e1">ส่งผิดรุ่น / ผิดสี / ผิดขนาด</label>
+      <label class="chip"><input type="checkbox" data-k="e2">ส่งผิดรายการสินค้า</label>
+      <label class="chip"><input type="checkbox" data-k="e3">จำนวนขาด / เกิน</label>
+      <label class="chip"><input type="checkbox" data-k="e4">สินค้าชำรุด / เสียหาย</label>
+      <label class="chip"><input type="checkbox" data-k="e5">ของแถม / ของแนบไม่ครบ</label>
+      <label class="chip"><input type="checkbox" data-k="e6">ส่งผิดที่อยู่ / ผิดคน</label>
+      <label class="chip"><input type="checkbox" data-k="e7">ลูกค้าไม่ได้รับสินค้า</label>
+      <label class="chip"><input type="checkbox" data-k="e8">แพ็คไม่เรียบร้อย</label>
+      <label class="chip grow"><input type="checkbox" data-k="e9">อื่น ๆ<span class="wf"><input type="text" data-k="e9t"></span></label>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="sec">
+    <div class="sh"><div class="no">3</div><div class="tx">ข้อความที่ลูกค้าแจ้งเข้ามา</div><div class="ln"></div></div>
+    <div class="card tint">
+      <textarea rows="2" data-k="msg" placeholder="พิมพ์ข้อความที่ลูกค้าแจ้ง..."></textarea>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="sec">
+    <div class="sh"><div class="no">4</div><div class="tx">รูปภาพประกอบ <span class="hint">กดที่กรอบเพื่อใส่รูป</span></div><div class="ln"></div></div>
+    <div class="imgs">
+      <div class="ib">
+        <div class="cp"><i>1</i>รูปที่ลูกค้าแจ้งมา</div>
+        <label class="drop" tabindex="0" data-k="img1">
+          <span class="tools"><button type="button" class="rot">หมุน</button><button type="button" class="del">ลบ</button></span>
+          <span class="ph"><b>+</b>กดเพื่อเลือกรูป<br>หรือลากรูปมาวาง</span>
+          <img alt="รูปที่ลูกค้าแจ้งมา">
+          <input type="file" accept="image/*">
+        </label>
+      </div>
+      <div class="ib">
+        <div class="cp"><i>2</i>ภาพจากวิดีโอแพ็คสินค้า</div>
+        <label class="drop" tabindex="0" data-k="img2">
+          <span class="tools"><button type="button" class="rot">หมุน</button><button type="button" class="del">ลบ</button></span>
+          <span class="ph"><b>+</b>กดเพื่อเลือกรูป<br>หรือลากรูปมาวาง</span>
+          <img alt="ภาพจากวิดีโอแพ็คสินค้า">
+          <input type="file" accept="image/*">
+        </label>
+      </div>
+      <div class="ib">
+        <div class="cp"><i>3</i>รูปคำสั่งซื้อ</div>
+        <label class="drop" tabindex="0" data-k="img3">
+          <span class="tools"><button type="button" class="rot">หมุน</button><button type="button" class="del">ลบ</button></span>
+          <span class="ph"><b>+</b>กดเพื่อเลือกรูป<br>หรือลากรูปมาวาง</span>
+          <img alt="รูปคำสั่งซื้อ">
+          <input type="file" accept="image/*">
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="sec">
+    <div class="sh"><div class="no">5</div><div class="tx">สาเหตุ และแนวทางแก้ไข / ป้องกัน</div><div class="ln"></div></div>
+    <div class="card">
+      <div class="mini-lb">สาเหตุของความผิดพลาด</div>
+      <textarea rows="2" data-k="cause"></textarea>
+      <div class="mini-lb" style="margin-top:1.8mm;">การแก้ไขให้ลูกค้า</div>
+      <div class="chips">
+        <label class="chip"><input type="checkbox" data-k="f1">ส่งใหม่</label>
+        <label class="chip"><input type="checkbox" data-k="f2">คืนเงิน</label>
+        <label class="chip"><input type="checkbox" data-k="f3">ส่วนลด / ชดเชย</label>
+        <label class="chip grow"><input type="checkbox" data-k="f4">อื่น ๆ<span class="wf"><input type="text" data-k="f4t"></span></label>
+      </div>
+      <div class="mini-lb" style="margin-top:1.8mm;">แนวทางป้องกันไม่ให้เกิดซ้ำ</div>
+      <textarea rows="1" data-k="prevent"></textarea>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="sec">
+    <div class="sh"><div class="no">6</div><div class="tx">ผู้เกี่ยวข้องลงนามรับทราบ</div><div class="ln"></div></div>
+    <div class="ack">
+      <div class="bar2"></div>
+      <div>ผู้มีรายนามด้านล่างได้รับทราบความผิดพลาดตามรายละเอียดในเอกสารนี้ และยินดีปฏิบัติตามแนวทางป้องกันไม่ให้เกิดซ้ำ</div>
+    </div>
+    <div class="sg">
+      <div class="sc">
+        <div class="rl">คนจัดสินค้า</div>
+        <div class="pad" data-k="sig1"><canvas></canvas><span class="hintx">เซ็นในกรอบนี้</span><button class="clr" type="button">ล้าง</button></div>
+        <div class="rw"><span class="k">ชื่อ-สกุล</span><input type="text" data-k="n1"></div>
+        <div class="rw"><span class="k">วันที่</span><input type="text" data-k="d1"></div>
+      </div>
+      <div class="sc">
+        <div class="rl">คนเช็คสินค้า</div>
+        <div class="pad" data-k="sig2"><canvas></canvas><span class="hintx">เซ็นในกรอบนี้</span><button class="clr" type="button">ล้าง</button></div>
+        <div class="rw"><span class="k">ชื่อ-สกุล</span><input type="text" data-k="n2"></div>
+        <div class="rw"><span class="k">วันที่</span><input type="text" data-k="d2"></div>
+      </div>
+      <div class="sc">
+        <div class="rl">คนแพ็คสินค้า</div>
+        <div class="pad" data-k="sig3"><canvas></canvas><span class="hintx">เซ็นในกรอบนี้</span><button class="clr" type="button">ล้าง</button></div>
+        <div class="rw"><span class="k">ชื่อ-สกุล</span><input type="text" data-k="n3"></div>
+        <div class="rw"><span class="k">วันที่</span><input type="text" data-k="d3"></div>
+      </div>
+      <div class="sc">
+        <div class="rl">หัวหน้างาน / ผู้ตรวจ</div>
+        <div class="pad" data-k="sig4"><canvas></canvas><span class="hintx">เซ็นในกรอบนี้</span><button class="clr" type="button">ล้าง</button></div>
+        <div class="rw"><span class="k">ชื่อ-สกุล</span><input type="text" data-k="n4"></div>
+        <div class="rw"><span class="k">วันที่</span><input type="text" data-k="d4"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "err-ack-form-v1";
+  var MM = 96 / 25.4;
+  var PAGE_MM = 297 - 9 - 7;          // พื้นที่พิมพ์ในแนวตั้งของ A4
+  var FRAME_MAX = 74, FRAME_MIN = 34; // ความสูงกรอบรูป (mm)
+  var doc = document.getElementById('doc');
+  var statusEl = document.getElementById('status');
+  var warnEl = document.getElementById('warn');
+  var drops = [].slice.call(document.querySelectorAll('.drop'));
+  var pads = [].slice.call(document.querySelectorAll('.pad'));
+  var activeDrop = null, saveTimer = null, statusTimer = null;
+
+  /* ---------- ปรับให้พอดี 1 หน้า ---------- */
+  function setFrame(mm){ document.documentElement.style.setProperty('--frameH', mm + 'mm'); }
+  function contentMM(){ return doc.getBoundingClientRect().height / MM; }
+  function fit(){
+    if (window.innerWidth < 860) { setFrame(FRAME_MAX); warnEl.classList.remove('on'); return; }
+    var h = FRAME_MAX;
+    setFrame(h);
+    while (h > FRAME_MIN && contentMM() > PAGE_MM) { h -= 2; setFrame(h); }
+    warnEl.classList.toggle('on', contentMM() > PAGE_MM);
+  }
+
+  /* ---------- textarea ยืดตามข้อความ ---------- */
+  function grow(t){ t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }
+  var areas = [].slice.call(document.querySelectorAll('textarea'));
+  areas.forEach(function(t){
+    t.addEventListener('input', function(){ grow(t); fit(); save(); });
+  });
+
+  /* ---------- รูปภาพ ---------- */
+  function shrink(file, cb){
+    var url = URL.createObjectURL(file);
+    var im = new Image();
+    im.onload = function(){
+      var max = 1400, w = im.width, h = im.height, s = Math.min(1, max / Math.max(w, h));
+      var c = document.createElement('canvas');
+      c.width = Math.round(w * s); c.height = Math.round(h * s);
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      cb(c.toDataURL('image/jpeg', 0.86));
+    };
+    im.onerror = function(){ URL.revokeObjectURL(url); };
+    im.src = url;
+  }
+  function setImg(drop, src){
+    drop.querySelector('img').src = src;
+    drop.classList.add('has');
+  }
+  function clearImg(drop){
+    drop.classList.remove('has');
+    drop.querySelector('img').removeAttribute('src');
+    drop.querySelector('input[type=file]').value = '';
+  }
+  function rotate(drop){
+    var img = drop.querySelector('img');
+    if (!img.src) return;
+    var im = new Image();
+    im.onload = function(){
+      var c = document.createElement('canvas');
+      c.width = im.height; c.height = im.width;
+      var x = c.getContext('2d');
+      x.translate(c.width / 2, c.height / 2);
+      x.rotate(Math.PI / 2);
+      x.drawImage(im, -im.width / 2, -im.height / 2);
+      setImg(drop, c.toDataURL('image/jpeg', 0.86));
+      save();
+    };
+    im.src = img.src;
+  }
+  function accept(drop, file){
+    if (!file || file.type.indexOf('image') !== 0) return;
+    shrink(file, function(src){ setImg(drop, src); save(); });
+  }
+
+  drops.forEach(function(drop){
+    var input = drop.querySelector('input[type=file]');
+    drop.addEventListener('click', function(){ activeDrop = drop; });
+    drop.addEventListener('focus', function(){ activeDrop = drop; });
+    drop.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); }
+    });
+    input.addEventListener('change', function(){ accept(drop, input.files[0]); });
+    drop.querySelector('.del').addEventListener('click', function(e){
+      e.preventDefault(); e.stopPropagation(); clearImg(drop); save();
+    });
+    drop.querySelector('.rot').addEventListener('click', function(e){
+      e.preventDefault(); e.stopPropagation(); rotate(drop);
+    });
+    ['dragenter','dragover'].forEach(function(t){
+      drop.addEventListener(t, function(e){ e.preventDefault(); drop.classList.add('over'); });
+    });
+    ['dragleave','dragend'].forEach(function(t){
+      drop.addEventListener(t, function(){ drop.classList.remove('over'); });
+    });
+    drop.addEventListener('drop', function(e){
+      e.preventDefault(); drop.classList.remove('over'); activeDrop = drop;
+      if (e.dataTransfer && e.dataTransfer.files.length) accept(drop, e.dataTransfer.files[0]);
+    });
+  });
+
+  document.addEventListener('paste', function(e){
+    var items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (var i = 0; i < items.length; i++){
+      if (items[i].type && items[i].type.indexOf('image') === 0){
+        var target = activeDrop || drops.filter(function(d){ return !d.classList.contains('has'); })[0];
+        if (!target) return;
+        e.preventDefault();
+        accept(target, items[i].getAsFile());
+        return;
+      }
+    }
+  });
+
+  /* ---------- ลายเซ็น ---------- */
+  function initPad(pad){
+    var canvas = pad.querySelector('canvas');
+    var ctx = canvas.getContext('2d');
+    var drawing = false, last = null, dpr = Math.max(2, window.devicePixelRatio || 1);
+
+    function size(keep){
+      var data = keep && pad.classList.contains('inked') ? canvas.toDataURL() : null;
+      var r = pad.getBoundingClientRect();
+      if (!r.width) return;
+      canvas.width = Math.round(r.width * dpr);
+      canvas.height = Math.round(r.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#0d1117';
+      if (data){ var im = new Image(); im.onload = function(){ ctx.drawImage(im, 0, 0, r.width, r.height); }; im.src = data; }
+    }
+    function pt(e){
+      var r = canvas.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+    canvas.addEventListener('pointerdown', function(e){
+      e.preventDefault(); canvas.setPointerCapture(e.pointerId);
+      drawing = true; last = pt(e); pad.classList.add('inked');
+    });
+    canvas.addEventListener('pointermove', function(e){
+      if (!drawing) return;
+      var p = pt(e);
+      ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+      last = p;
+    });
+    ['pointerup','pointercancel','pointerleave'].forEach(function(t){
+      canvas.addEventListener(t, function(){ if (drawing){ drawing = false; save(); } });
+    });
+    pad.querySelector('.clr').addEventListener('click', function(e){
+      e.preventDefault();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      pad.classList.remove('inked');
+      save();
+    });
+
+    pad._size = size;
+    pad._load = function(src){
+      var r = pad.getBoundingClientRect();
+      var im = new Image();
+      im.onload = function(){ ctx.drawImage(im, 0, 0, r.width, r.height); pad.classList.add('inked'); };
+      im.src = src;
+    };
+    pad._data = function(){ return pad.classList.contains('inked') ? canvas.toDataURL('image/png') : ''; };
+    size(false);
+  }
+  pads.forEach(initPad);
+
+  /* ---------- บันทึกร่างอัตโนมัติ ---------- */
+  function flash(msg){
+    statusEl.textContent = msg;
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(function(){ statusEl.textContent = ''; }, 1800);
+  }
+  function collect(){
+    var d = { t:{}, c:{}, img:{}, sig:{} };
+    document.querySelectorAll('[data-k]').forEach(function(el){
+      var k = el.getAttribute('data-k');
+      if (el.tagName === 'INPUT' && el.type === 'checkbox') d.c[k] = el.checked;
+      else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') d.t[k] = el.value;
+    });
+    drops.forEach(function(dr){
+      var img = dr.querySelector('img');
+      if (dr.classList.contains('has') && img.src) d.img[dr.getAttribute('data-k')] = img.src;
+    });
+    pads.forEach(function(p){ var s = p._data(); if (s) d.sig[p.getAttribute('data-k')] = s; });
+    return d;
+  }
+  function save(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function(){
+      try { localStorage.setItem(KEY, JSON.stringify(collect())); flash('บันทึกร่างแล้ว'); }
+      catch(err){ flash('พื้นที่เก็บเต็ม'); }
+    }, 400);
+  }
+  function restore(){
+    var raw;
+    try { raw = localStorage.getItem(KEY); } catch(e){ return; }
+    if (!raw) return;
+    var d;
+    try { d = JSON.parse(raw); } catch(e){ return; }
+    document.querySelectorAll('[data-k]').forEach(function(el){
+      var k = el.getAttribute('data-k');
+      if (el.tagName === 'INPUT' && el.type === 'checkbox'){ if (d.c && k in d.c) el.checked = !!d.c[k]; }
+      else if ((el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && d.t && k in d.t) el.value = d.t[k];
+    });
+    drops.forEach(function(dr){
+      var k = dr.getAttribute('data-k');
+      if (d.img && d.img[k]) setImg(dr, d.img[k]);
+    });
+    pads.forEach(function(p){
+      var k = p.getAttribute('data-k');
+      if (d.sig && d.sig[k]) p._load(d.sig[k]);
+    });
+    areas.forEach(grow);
+  }
+
+  document.querySelectorAll('input[type=text]').forEach(function(el){
+    el.addEventListener('input', save);
+  });
+  document.querySelectorAll('input[type=checkbox]').forEach(function(el){
+    el.addEventListener('change', save);
+  });
+
+  /* ---------- ปุ่ม ---------- */
+  document.getElementById('print').addEventListener('click', function(){
+    try { window.print(); } catch(e){ flash('กด Ctrl+P เพื่อพิมพ์'); }
+  });
+
+  var clearBtn = document.getElementById('clear'), armed = false, armTimer;
+  clearBtn.addEventListener('click', function(){
+    if (!armed){
+      armed = true; clearBtn.textContent = 'กดอีกครั้งเพื่อล้าง';
+      armTimer = setTimeout(function(){ armed = false; clearBtn.textContent = 'ล้างฟอร์ม'; }, 4000);
+      return;
+    }
+    clearTimeout(armTimer); armed = false; clearBtn.textContent = 'ล้างฟอร์ม';
+    document.querySelectorAll('input[type=text], textarea').forEach(function(el){ el.value = ''; });
+    document.querySelectorAll('input[type=checkbox]').forEach(function(el){ el.checked = false; });
+    drops.forEach(clearImg);
+    pads.forEach(function(p){ p.querySelector('.clr').click(); });
+    areas.forEach(grow);
+    try { localStorage.removeItem(KEY); } catch(e){}
+    fit(); flash('ล้างแล้ว');
+  });
+
+  /* ---------- เริ่มทำงาน ---------- */
+  restore();
+  fit();
+  window.addEventListener('resize', function(){
+    pads.forEach(function(p){ p._size(true); });
+    areas.forEach(grow);
+    fit();
+  });
+  window.addEventListener('beforeprint', fit);
+  if (document.fonts && document.fonts.ready){
+    document.fonts.ready.then(function(){ areas.forEach(grow); fit(); });
+  }
+})();
+</script>
+</body>
+</html>
