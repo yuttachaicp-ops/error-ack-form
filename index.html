@@ -99,6 +99,12 @@
     border:1px solid var(--line); border-radius:1.2mm; background:var(--tint);
     height:5.8mm; padding:0 1.4mm; font-size:8.5pt;
   }
+  .dtwrap{ position:relative; }
+  .dtwrap .dtshow{ cursor:pointer; }
+  .dtwrap .dtpick{
+    position:absolute; inset:0; width:100%; height:100%; opacity:0;
+    border:none; padding:0; margin:0; cursor:pointer;
+  }
   textarea{
     font:inherit; color:var(--ink); width:100%; display:block; resize:none; overflow:hidden;
     border:none; background:transparent; padding:0; line-height:1.55;
@@ -203,7 +209,7 @@
     body{ background:#fff; }
     .bar{ display:none !important; }
     .sheet{ width:auto; margin:0; padding:0; box-shadow:none; }
-    .btn, .tools, .pad .clr{ display:none !important; }
+    .btn, .tools, .pad .clr, .dtwrap .dtpick{ display:none !important; }
     .drop{ cursor:default; height:var(--frameH); }
     .imgs{ flex-direction:row; }
     .grid{ flex-direction:row; }
@@ -223,7 +229,7 @@
   <button class="btn pri" id="print" type="button">พิมพ์ / บันทึกเป็น PDF</button>
   <div class="tip">
     กรอกได้ทุกช่อง • ใส่รูปโดยกดที่กรอบ ลากไฟล์มาวาง หรือกด Ctrl+V วางสกรีนช็อต • เซ็นชื่อได้เลยด้วยเมาส์หรือนิ้วในกรอบลายเซ็น •
-    ระบบเก็บร่างไว้ในเครื่องอัตโนมัติ • เวลาสั่งพิมพ์ให้เลือก A4 และปิด “Headers and footers” (ถ้าปุ่มพิมพ์ไม่ทำงาน ให้กด Ctrl+P)
+    เลขที่เอกสารและวันที่บันทึกรันให้อัตโนมัติ (แก้ทับได้) • ระบบเก็บร่างไว้ในเครื่องอัตโนมัติ • เวลาสั่งพิมพ์ให้เลือก A4 และปิด “Headers and footers” (ถ้าปุ่มพิมพ์ไม่ทำงาน ให้กด Ctrl+P)
   </div>
   <div class="warn" id="warn">⚠ เนื้อหายาวเกิน 1 หน้า A4 — ลดข้อความลงเล็กน้อยเพื่อให้พิมพ์ได้หน้าเดียว</div>
 </div>
@@ -254,7 +260,13 @@
       <div class="grid">
         <div class="fld" style="flex:1.4;"><div class="lb">หมายเลขคำสั่งซื้อ</div><input type="text" data-k="orderno"></div>
         <div class="fld"><div class="lb">ชื่อลูกค้า</div><input type="text" data-k="customer"></div>
-        <div class="fld" style="flex:.8;"><div class="lb">วันที่เกิดเหตุ</div><input type="text" data-k="incdate"></div>
+        <div class="fld" style="flex:.85;">
+          <div class="lb">วันที่สั่งซื้อ</div>
+          <div class="dtwrap">
+            <input type="text" class="dtshow" data-k="orderdate" readonly placeholder="กดเพื่อเลือกวันที่">
+            <input type="date" class="dtpick" data-k="orderdate_iso" aria-label="เลือกวันที่สั่งซื้อ">
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -364,7 +376,7 @@
       <div class="sc">
         <div class="rl">หัวหน้างาน / ผู้ตรวจ</div>
         <div class="pad" data-k="sig4"><canvas></canvas><span class="hintx">เซ็นในกรอบนี้</span><button class="clr" type="button">ล้าง</button></div>
-        <div class="rw"><span class="k">ชื่อ-สกุล</span><input type="text" data-k="n4"></div>
+        <div class="rw"><span class="k">ชื่อ-สกุล</span><input type="text" data-k="n4" data-default="นายไกรวิวัฒน์ เปล่งวิทยา" value="นายไกรวิวัฒน์ เปล่งวิทยา"></div>
         <div class="rw"><span class="k">วันที่</span><input type="text" data-k="d4"></div>
       </div>
     </div>
@@ -546,6 +558,49 @@
   }
   pads.forEach(initPad);
 
+
+  /* ---------- เลขที่เอกสาร + วันที่ อัตโนมัติ ---------- */
+  var SEQ = "err-ack-seq";
+  var docNoEl = document.querySelector('[data-k=docno]');
+  var docDateEl = document.querySelector('[data-k=docdate]');
+  function pad(n, w){ n = String(n); while (n.length < w) n = '0' + n; return n; }
+  function thaiDate(d){ return pad(d.getDate(),2) + '/' + pad(d.getMonth()+1,2) + '/' + (d.getFullYear() + 543); }
+  function ymKey(d){ return pad((d.getFullYear() + 543) % 100, 2) + pad(d.getMonth()+1, 2); }
+  function seqMap(){
+    try { return JSON.parse(localStorage.getItem(SEQ) || '{}'); } catch(e){ return {}; }
+  }
+  function nextDocNo(){
+    var d = new Date(), k = ymKey(d), m = seqMap();
+    return 'ERR-' + k + '-' + pad((m[k] || 0) + 1, 3);
+  }
+  function consumeDocNo(){
+    var d = new Date(), k = ymKey(d), m = seqMap();
+    m[k] = (m[k] || 0) + 1;
+    try { localStorage.setItem(SEQ, JSON.stringify(m)); } catch(e){}
+  }
+  function stampNew(){
+    docNoEl.value = nextDocNo();
+    docDateEl.value = thaiDate(new Date());
+  }
+
+  /* ---------- ช่องเลือกวันที่สั่งซื้อ ---------- */
+  var dtWrap = document.querySelector('.dtwrap');
+  var dtShow = dtWrap.querySelector('.dtshow');
+  var dtPick = dtWrap.querySelector('.dtpick');
+  function syncDate(){
+    if (!dtPick.value){ dtShow.value = ''; return; }
+    var p = dtPick.value.split('-');
+    dtShow.value = pad(p[2], 2) + '/' + pad(p[1], 2) + '/' + (parseInt(p[0], 10) + 543);
+  }
+  function openPicker(){
+    try { dtPick.showPicker(); } catch(e){ dtPick.focus(); dtPick.click(); }
+  }
+  dtPick.addEventListener('change', function(){ syncDate(); save(); });
+  dtShow.addEventListener('click', function(e){ e.preventDefault(); openPicker(); });
+  dtShow.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openPicker(); }
+  });
+
   /* ---------- บันทึกร่างอัตโนมัติ ---------- */
   function flash(msg){
     statusEl.textContent = msg;
@@ -593,6 +648,7 @@
       if (d.sig && d.sig[k]) p._load(d.sig[k]);
     });
     areas.forEach(grow);
+    syncDate();
   }
 
   document.querySelectorAll('input[type=text]').forEach(function(el){
@@ -604,6 +660,8 @@
 
   /* ---------- ปุ่ม ---------- */
   document.getElementById('print').addEventListener('click', function(){
+    // เลขรันจะถูกใช้จริงเมื่อพิมพ์ครั้งแรกของเอกสารนี้ (พิมพ์ซ้ำไม่กินเลขเพิ่ม)
+    if (docNoEl.value.trim() === nextDocNo()) { consumeDocNo(); save(); }
     try { window.print(); } catch(e){ flash('กด Ctrl+P เพื่อพิมพ์'); }
   });
 
@@ -619,13 +677,17 @@
     document.querySelectorAll('input[type=checkbox]').forEach(function(el){ el.checked = false; });
     drops.forEach(clearImg);
     pads.forEach(function(p){ p.querySelector('.clr').click(); });
+    dtPick.value = ''; syncDate();
+    document.querySelectorAll('[data-default]').forEach(function(el){ el.value = el.getAttribute('data-default'); });
     areas.forEach(grow);
     try { localStorage.removeItem(KEY); } catch(e){}
-    fit(); flash('ล้างแล้ว');
+    stampNew();
+    fit(); flash('ล้างแล้ว — เลขที่เอกสารใหม่');
   });
 
   /* ---------- เริ่มทำงาน ---------- */
   restore();
+  if (!docNoEl.value.trim() || !docDateEl.value.trim()) stampNew();
   fit();
   window.addEventListener('resize', function(){
     pads.forEach(function(p){ p._size(true); });
